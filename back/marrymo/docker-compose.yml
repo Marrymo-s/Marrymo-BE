@@ -49,7 +49,7 @@ services:
       SPRING_REDIS_PORT: ${SPRING_REDIS_PORT}
       SPRING_REDIS_PASSWORD: ${SPRING_REDIS_PASSWORD}
     ports:
-      - 8080:8080
+      - 8000:8080
     env_file:
       - /home/ubuntu/config/.env
     depends_on:
