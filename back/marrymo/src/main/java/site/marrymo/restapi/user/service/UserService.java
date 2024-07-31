@@ -36,15 +36,12 @@ import site.marrymo.restapi.wedding_img.entity.WeddingImg;
 import site.marrymo.restapi.wedding_img.repository.WeddingImgRepository;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 @Slf4j
 @Service
@@ -107,7 +104,7 @@ public class UserService {
                 .brideFather(userRegistRequest.getBrideFather())
                 .brideMother(userRegistRequest.getBrideMother())
                 .greeting(userRegistRequest.getGreeting())
-                .isIssued(false)
+                .isIssued(Boolean.valueOf(false))
                 .build());
 
         //웨딩 이미지에 이미지 정보 저장
@@ -211,7 +208,7 @@ public class UserService {
             imgUrlList.add(weddingImg.getImgUrl());
         }
 
-        return UserGetResponse.toDto(user, card, imgUrlList, isMem);
+        return UserGetResponse.toDto(user, card, imgUrlList, Boolean.valueOf(isMem));
     }
 
     public void deleteUser(UserDTO userDTO){
@@ -264,7 +261,7 @@ public class UserService {
     }
 
     public VerifyAccountResponse verifyAccount(UserDTO userDTO){
-        Boolean isVerify = false;
+        boolean isVerify = false;
 
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
@@ -304,8 +301,8 @@ public class UserService {
         Boolean isRequired = user.isRequired();
 
         return PermissionResponse.builder()
-                .isAgreement(isAgreement)
-                .isRequired(isRequired)
+                .isAgreement(Boolean.valueOf(user.isAgreement()))
+                .isRequired(Boolean.valueOf(user.isRequired()))
                 .build();
     }
 
@@ -340,16 +337,16 @@ public class UserService {
 
         //이메일 요청 시 인증 번호를 Redis에 저장
         //(key = Email / value = AuthCode)
-        redisService.setValue(toEmail, authCode, authCodeExpirationMillis);
+        redisService.setValue(toEmail, authCode, Long.valueOf(authCodeExpirationMillis));
     }
 
     public Boolean verifiedAuthCode(SmtpVerifyRequest smtpVerifyRequest){
         String redisAuthCode = redisService.getValue(smtpVerifyRequest.getEmail());
 
         if(smtpVerifyRequest.getCode().equals(redisAuthCode))
-            return true;
+            return Boolean.valueOf(true);
         else
-            return false;
+            return Boolean.valueOf(false);
     }
 
     private void checkDuplicatedEmail(String email){
