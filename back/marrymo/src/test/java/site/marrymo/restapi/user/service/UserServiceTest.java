@@ -12,6 +12,7 @@ import site.marrymo.restapi.card.exception.CardErrorCode;
 import site.marrymo.restapi.card.exception.CardException;
 import site.marrymo.restapi.card.repository.CardRepository;
 import site.marrymo.restapi.global.exception.MarrymoException;
+import site.marrymo.restapi.user.dto.request.InvitationIssueRequest;
 import site.marrymo.restapi.user.entity.User;
 import site.marrymo.restapi.user.exception.UserErrorCode;
 import site.marrymo.restapi.user.repository.UserRepository;
@@ -45,7 +46,7 @@ class UserServiceTest {
     //stubbing을 이용한 테스트 코드
     @Test
     @DisplayName("회원 청첩장 정보 저장")
-    void registUserInfoTest(){
+    void registUserInfoTest() {
         // Given(준비)
         // 회원 고유 번호 (pk)
         Long userSequence = 1L;
@@ -76,7 +77,7 @@ class UserServiceTest {
                 .weddingDate(LocalDate.parse("2024-07-31", DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .weddingTime(LocalTime.parse("12:00:00", DateTimeFormatter.ofPattern("HH:mm:ss")))
                 .weddingDay("월")
-                .invitationUrl("https://marrymo.site/"+user.getUserCode())
+                .invitationUrl("https://marrymo.site/" + user.getUserCode())
                 .location("역삼동")
                 .groomFather("김파이")
                 .groomMother("김노드")
@@ -123,7 +124,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("청첩장 정보 수정")
-    void modifyUserInfoTest(){
+    void modifyUserInfoTest() {
         // Given(준비)
         // 회원 고유 번호 (pk)
         Long userSequence = 1L;
@@ -154,7 +155,7 @@ class UserServiceTest {
                 .weddingDate(LocalDate.parse("2024-07-31", DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .weddingTime(LocalTime.parse("12:00:00", DateTimeFormatter.ofPattern("HH:mm:ss")))
                 .weddingDay("월")
-                .invitationUrl("https://marrymo.site/"+user.getUserCode())
+                .invitationUrl("https://marrymo.site/" + user.getUserCode())
                 .location("역삼동")
                 .groomFather("김파이")
                 .groomMother("김노드")
@@ -214,7 +215,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("회원 정보 조회")
-    void getUserInfoTest(){
+    void getUserInfoTest() {
         //Given
         // 임의의 User 객체 생성
         User user = User.builder()
@@ -236,7 +237,7 @@ class UserServiceTest {
                 .weddingDate(LocalDate.parse("2024-07-31", DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .weddingTime(LocalTime.parse("12:00:00", DateTimeFormatter.ofPattern("HH:mm:ss")))
                 .weddingDay("월")
-                .invitationUrl("https://marrymo.site/"+user.getUserCode())
+                .invitationUrl("https://marrymo.site/" + user.getUserCode())
                 .location("역삼동")
                 .groomFather("김파이")
                 .groomMother("김노드")
@@ -276,7 +277,7 @@ class UserServiceTest {
 
     @Test
     @DisplayName("회원 탈퇴")
-    void deleteUserTest(){
+    void deleteUserTest() {
         //Given
         // 임의의 User 객체 생성
         User user = User.builder()
@@ -296,7 +297,7 @@ class UserServiceTest {
                 .weddingDate(LocalDate.parse("2024-07-31", DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .weddingTime(LocalTime.parse("12:00:00", DateTimeFormatter.ofPattern("HH:mm:ss")))
                 .weddingDay("월")
-                .invitationUrl("https://marrymo.site/"+user.getUserCode())
+                .invitationUrl("https://marrymo.site/" + user.getUserCode())
                 .location("역삼동")
                 .groomFather("김파이")
                 .groomMother("김노드")
@@ -333,4 +334,67 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).delete(user);
     }
+
+    @Test
+    @DisplayName("청첩장 발급 완료 여부 수정")
+    void invitationIssuedTest() {
+
+        //Given
+        // 임의의 User 객체 생성(필수 필드 초기화)
+
+        Boolean resultIsIssued = true;
+
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .build();
+
+        // 임의의 Card 객체 생성
+        Card card = Card.builder()
+                .user(user)
+                .groomName("김철수")
+                .brideName("김영희")
+                .groomContact("010-1234-5678")
+                .brideContact("010-9876-5432")
+                .weddingDate(LocalDate.of(2024, 3, 3))
+                .weddingDay("수요일")
+                .weddingTime(LocalTime.of(12, 0))
+                .location("서울 강남구")
+                .isIssued(false)
+                .greeting("결혼합니다.")
+                .build();
+
+        InvitationIssueRequest invitationIssueRequest = InvitationIssueRequest.builder()
+                .isIssued(true)
+                .build();
+
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.ofNullable(user));
+        when(cardRepository.findByUser(user)).thenReturn(Optional.ofNullable(card));
+        when(cardRepository.save(card)).thenReturn(card);
+
+        // When
+        User resultUser = userRepository.findByUserSequence(1L)
+                .orElseThrow(() -> new MarrymoException(UserErrorCode.USER_NOT_FOUND));
+
+        Card resultCard = cardRepository.findByUser(user)
+                .orElseThrow(() -> new MarrymoException(CardErrorCode.CARD_NOT_FOUND));
+
+        resultCard.modifyIsIssued(invitationIssueRequest.getIsIssued());
+
+        cardRepository.save(card);
+
+        // Then
+        assertEquals(resultIsIssued, card.getIsIssued());
+        verify(userRepository, times(1)).findByUserSequence(1L);
+        verify(cardRepository, times(1)).findByUser(user);
+        verify(cardRepository, times(1)).save(card);
+    }
+
+    @Test
+    @DisplayName("축의금 송금할 계좌주(신랑, 신부, 둘다) 등록")
+    void registWhoTest(){
+
+    }
+
 }
