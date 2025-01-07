@@ -3,6 +3,7 @@ package site.marrymo.restapi.user.service;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -12,6 +13,7 @@ import site.marrymo.restapi.card.exception.CardErrorCode;
 import site.marrymo.restapi.card.exception.CardException;
 import site.marrymo.restapi.card.repository.CardRepository;
 import site.marrymo.restapi.global.exception.MarrymoException;
+import site.marrymo.restapi.user.dto.Who;
 import site.marrymo.restapi.user.dto.request.InvitationIssueRequest;
 import site.marrymo.restapi.user.entity.User;
 import site.marrymo.restapi.user.exception.UserErrorCode;
@@ -19,6 +21,7 @@ import site.marrymo.restapi.user.repository.UserRepository;
 import site.marrymo.restapi.wedding_img.entity.WeddingImg;
 import site.marrymo.restapi.wedding_img.repository.WeddingImgRepository;
 
+import javax.swing.text.html.Option;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -339,7 +342,7 @@ class UserServiceTest {
     @DisplayName("청첩장 발급 완료 여부 수정")
     void invitationIssuedTest() {
 
-        //Given
+        // Given
         // 임의의 User 객체 생성(필수 필드 초기화)
 
         Boolean resultIsIssued = true;
@@ -393,8 +396,34 @@ class UserServiceTest {
 
     @Test
     @DisplayName("축의금 송금할 계좌주(신랑, 신부, 둘다) 등록")
-    void registWhoTest(){
+    void registWhoTest() {
+        // Given
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .who(null)
+                .build();
 
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        Who[] resultWho = {Who.BRIDE, Who.GROOM, Who.BOTH};
+
+        for (Who who : resultWho) {
+            // When
+            User resultUser = userRepository.findByUserSequence(1L)
+                    .orElseThrow(() -> new MarrymoException(UserErrorCode.USER_NOT_FOUND));
+
+            resultUser.modifyUserWho(who);
+
+            userRepository.save(resultUser);
+
+            // Then
+            assertEquals(who, resultUser.getWho());
+            verify(userRepository, atLeastOnce()).findByUserSequence(1L);
+            verify(userRepository, atLeastOnce()).save(resultUser);
+        }
     }
 
 }
