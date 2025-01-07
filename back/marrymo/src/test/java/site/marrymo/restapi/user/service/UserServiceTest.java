@@ -425,4 +425,27 @@ class UserServiceTest {
         }
     }
 
+    @Test
+    @DisplayName("축의금 받을 계좌 등록 여부 확인")
+    void verifyAccountTest() {
+    }
+
+    @Test
+    @DisplayName("개인정보제공 동의 여부")
+    void patchAgreementTest(){
+
+    }
+
+    @Test
+    @DisplayName("서비스 이용약관 동의 여부")
+    void getUserPermission(){
+
+    }
+
+    @Test
+    @DisplayName("로그아웃(쿠키 삭제)")
+    void logoutTest(){
+
+    }
+
 }

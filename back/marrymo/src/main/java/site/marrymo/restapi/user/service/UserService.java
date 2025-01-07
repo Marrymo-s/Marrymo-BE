@@ -298,7 +298,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Boolean isAgreement = user.isAgreement();
-        Boolean isRequired = user.isRequired();
+                        Boolean isRequired = user.isRequired();
 
         return PermissionResponse.builder()
                 .isAgreement(Boolean.valueOf(user.isAgreement()))
