@@ -416,7 +416,6 @@ class UserServiceTest {
                     .orElseThrow(() -> new MarrymoException(UserErrorCode.USER_NOT_FOUND));
 
             resultUser.modifyUserWho(who);
-
             userRepository.save(resultUser);
 
             // Then
