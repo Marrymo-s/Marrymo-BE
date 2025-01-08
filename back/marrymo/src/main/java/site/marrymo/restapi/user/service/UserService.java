@@ -60,15 +60,15 @@ public class UserService {
     @Value("${spring.mail.auth-code-expiration-millis}")
     private long authCodeExpirationMillis;
 
-    public String makeUniqueUserCode(){
+    public String makeUniqueUserCode() {
         UserCodeGenerator userCodeGenerator = new UserCodeGenerator();
 
         String uniqueUserCode = "";
-        while(true){
+        while (true) {
             String userCode = userCodeGenerator.makeUserCode();
 
             //userCode가 유니크 한지 확인
-            if(userRepository.findByUserCode(userCode).isEmpty()){
+            if (userRepository.findByUserCode(userCode).isEmpty()) {
                 uniqueUserCode = userCode;
                 break;
             }
@@ -97,7 +97,7 @@ public class UserService {
                 .weddingDate(LocalDate.parse(userRegistRequest.getWeddingDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd")))
                 .weddingTime(LocalTime.parse(userRegistRequest.getWeddingTime(), DateTimeFormatter.ofPattern("HH:mm:ss")))
                 .weddingDay(userRegistRequest.getWeddingDay())
-                .invitationUrl("https://marrymo.site/"+user.getUserCode())
+                .invitationUrl("https://marrymo.site/" + user.getUserCode())
                 .location(userRegistRequest.getLocation())
                 .groomFather(userRegistRequest.getGroomFather())
                 .groomMother(userRegistRequest.getGroomMother())
@@ -111,11 +111,11 @@ public class UserService {
         Card card = cardRepository.findByUser(user)
                 .orElseThrow(() -> new CardException(CardErrorCode.CARD_NOT_FOUND));
 
-        if(userRegistRequest.getImgUrl() != null){
-            for(MultipartFile file : userRegistRequest.getImgUrl()){
+        if (userRegistRequest.getImgUrl() != null) {
+            for (MultipartFile file : userRegistRequest.getImgUrl()) {
                 try {
                     String imgUrl = awsS3Service.uploadFileImage("wedding_img", file, user.getUserCode());
-                    System.out.println("imgUrl:"+imgUrl);
+                    System.out.println("imgUrl:" + imgUrl);
 
                     weddingImgRepository.save(
                             WeddingImg.builder()
@@ -129,7 +129,7 @@ public class UserService {
         }
     }
 
-    public void modifyUserInfo(UserDTO userDTO, UserModifyRequest userModifyRequest){
+    public void modifyUserInfo(UserDTO userDTO, UserModifyRequest userModifyRequest) {
         //user table에 email 정보 저장
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
@@ -162,16 +162,16 @@ public class UserService {
         //저장되어 있는 이미지 정보 모두 삭제
         weddingImgRepository.deleteAll();
 
-        if(userModifyRequest.getImgUrl() != null){
-            for(MultipartFile file : userModifyRequest.getImgUrl()){
+        if (userModifyRequest.getImgUrl() != null) {
+            for (MultipartFile file : userModifyRequest.getImgUrl()) {
                 try {
                     String imgUrl = awsS3Service.uploadFileImage("wedding_img", file, user.getUserCode());
 
                     weddingImgRepository.save(
-                        WeddingImg.builder()
-                                .card(card)
-                                .imgUrl(imgUrl)
-                                .build());
+                            WeddingImg.builder()
+                                    .card(card)
+                                    .imgUrl(imgUrl)
+                                    .build());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -179,16 +179,16 @@ public class UserService {
         }
     }
 
-    public UserGetResponse getUserInfo(UserDTO userDTO, String userCode){
+    public UserGetResponse getUserInfo(UserDTO userDTO, String userCode) {
         boolean isMem = true;
 
         //회원이 접근 할 경우
         //쿠키를 까봤을 때 나온 userCode와 프론트에서 보낸 userCode가 다르다면
-        if(userDTO != null && !userDTO.getUserCode().equals(userCode))
+        if (userDTO != null && !userDTO.getUserCode().equals(userCode))
             isMem = false;
 
         //비회원이 접근할 경우
-        if(userDTO == null)
+        if (userDTO == null)
             isMem = false;
 
         User user = userRepository.findByUserCode(userCode)
@@ -200,9 +200,9 @@ public class UserService {
         List<WeddingImg> weddingImgList = weddingImgRepository.findByCard(card);
         List<String> imgUrlList = new ArrayList<>();
 
-        for(WeddingImg weddingImg : weddingImgList){
+        for (WeddingImg weddingImg : weddingImgList) {
             //img가 삭제된 시간이 찍혀 있으면 얻어오지 않는다
-            if(weddingImg.getDeletedAt() != null)
+            if (weddingImg.getDeletedAt() != null)
                 continue;
 
             imgUrlList.add(weddingImg.getImgUrl());
@@ -211,12 +211,12 @@ public class UserService {
         return UserGetResponse.toDto(user, card, imgUrlList, Boolean.valueOf(isMem));
     }
 
-    public void deleteUser(UserDTO userDTO){
+    public void deleteUser(UserDTO userDTO) {
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        if(user.getDeletedAt() != null)
-           throw new UserException(UserErrorCode.USER_ALREADY_DELETE);
+        if (user.getDeletedAt() != null)
+            throw new UserException(UserErrorCode.USER_ALREADY_DELETE);
 
         Card card = user.getCard();
         card.modifyInvitationUrl(null);
@@ -225,12 +225,12 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    public InvitationIssueResponse invitationIssued(UserDTO userDTO, InvitationIssueRequest invitationIssueRequest){
+    public InvitationIssueResponse invitationIssued(UserDTO userDTO, InvitationIssueRequest invitationIssueRequest) {
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Card card = user.getCard();
-        if(card == null){
+        if (card == null) {
             throw new CardException(CardErrorCode.CARD_NOT_FOUND);
         }
 
@@ -240,19 +240,17 @@ public class UserService {
         return InvitationIssueResponse.builder().isIssued(invitationIssueRequest.getIsIssued()).build();
     }
 
-    public void registWho(UserDTO userDTO, WhoRegistRequest whoRegistRequest){
+    public void registWho(UserDTO userDTO, WhoRegistRequest whoRegistRequest) {
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Who who = null;
 
-        if(whoRegistRequest.getWho().equals("GROOM")){
+        if (whoRegistRequest.getWho().equals("GROOM")) {
             who = Who.GROOM;
-        }
-        else if(whoRegistRequest.getWho().equals("BRIDE")){
+        } else if (whoRegistRequest.getWho().equals("BRIDE")) {
             who = Who.BRIDE;
-        }
-        else if(whoRegistRequest.getWho().equals("BOTH")){
+        } else if (whoRegistRequest.getWho().equals("BOTH")) {
             who = Who.BOTH;
         }
 
@@ -260,24 +258,22 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public VerifyAccountResponse verifyAccount(UserDTO userDTO){
+    public VerifyAccountResponse verifyAccount(UserDTO userDTO) {
         boolean isVerify = false;
 
         User user = userRepository.findByUserSequence(userDTO.getUserSequence())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        if(user.getWho() == Who.GROOM){
-            if(user.getGroomAccount() != null && !user.getGroomAccount().equals(""))
+        if (user.getWho() == Who.GROOM) {
+            if (user.getGroomAccount() != null && !user.getGroomAccount().equals(""))
                 isVerify = true;
-        }
-        else if(user.getWho() == Who.BRIDE){
-            if(user.getBrideAccount() != null && !user.getBrideAccount().equals(""))
+        } else if (user.getWho() == Who.BRIDE) {
+            if (user.getBrideAccount() != null && !user.getBrideAccount().equals(""))
                 isVerify = true;
 
-        }
-        else if(user.getWho() == Who.BOTH){
-            if(user.getGroomAccount() != null && !user.getGroomAccount().equals("") &&
-                    user.getBrideAccount() != null && !user.getBrideAccount().equals("")){
+        } else if (user.getWho() == Who.BOTH) {
+            if (user.getGroomAccount() != null && !user.getGroomAccount().equals("") &&
+                    user.getBrideAccount() != null && !user.getBrideAccount().equals("")) {
                 isVerify = true;
             }
         }
@@ -298,7 +294,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Boolean isAgreement = user.isAgreement();
-                        Boolean isRequired = user.isRequired();
+        Boolean isRequired = user.isRequired();
 
         return PermissionResponse.builder()
                 .isAgreement(Boolean.valueOf(user.isAgreement()))
@@ -306,12 +302,12 @@ public class UserService {
                 .build();
     }
 
-    public void logout(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse){
+    public void logout(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
         String refreshToken = "";
         //access token, refresh token 정보를 담고 있는 cookie 모두 제거
         Cookie[] cookies = httpServletRequest.getCookies();
-        for(Cookie cookie : cookies){
-            if(cookie.getName().equals("refreshToken")){
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("refreshToken")) {
                 refreshToken = cookie.getValue();
             }
             cookie.setMaxAge(0);
@@ -322,7 +318,7 @@ public class UserService {
         blackListRepository.save(BlackList.builder().invalidRefreshToken(refreshToken).build());
     }
 
-    public void sendCodeToEmail(String toEmail){
+    public void sendCodeToEmail(String toEmail) {
         log.debug("sendCodeToEmail Function...");
         this.checkDuplicatedEmail(toEmail);
         String title = "Marrymo 이메일 인증 번호";
@@ -340,28 +336,28 @@ public class UserService {
         redisService.setValue(toEmail, authCode, Long.valueOf(authCodeExpirationMillis));
     }
 
-    public Boolean verifiedAuthCode(SmtpVerifyRequest smtpVerifyRequest){
+    public Boolean verifiedAuthCode(SmtpVerifyRequest smtpVerifyRequest) {
         String redisAuthCode = redisService.getValue(smtpVerifyRequest.getEmail());
 
-        if(smtpVerifyRequest.getCode().equals(redisAuthCode))
+        if (smtpVerifyRequest.getCode().equals(redisAuthCode))
             return Boolean.valueOf(true);
         else
             return Boolean.valueOf(false);
     }
 
-    private void checkDuplicatedEmail(String email){
+    private void checkDuplicatedEmail(String email) {
         Optional<User> user = userRepository.findByEmail(email);
         //탈퇴하지 않은 회원 중 해당 email이 존재하다면
-        if(user.isPresent() && user.get().getDeletedAt() == null){
+        if (user.isPresent() && user.get().getDeletedAt() == null) {
             throw new UserException(UserErrorCode.USER_ALREADY_EXIST);
         }
     }
 
-    private String createCode(){
+    private String createCode() {
         StringBuilder sb = new StringBuilder();
 
-        for(int len = 0; len < 6; len++){
-            int num = (int)(Math.random()*10);
+        for (int len = 0; len < 6; len++) {
+            int num = (int) (Math.random() * 10);
             sb.append(num);
         }
 

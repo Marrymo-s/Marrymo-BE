@@ -1,5 +1,8 @@
 package site.marrymo.restapi.user.service;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,10 +16,13 @@ import site.marrymo.restapi.card.exception.CardErrorCode;
 import site.marrymo.restapi.card.exception.CardException;
 import site.marrymo.restapi.card.repository.CardRepository;
 import site.marrymo.restapi.global.exception.MarrymoException;
+import site.marrymo.restapi.user.dto.UserDTO;
 import site.marrymo.restapi.user.dto.Who;
 import site.marrymo.restapi.user.dto.request.InvitationIssueRequest;
+import site.marrymo.restapi.user.dto.response.VerifyAccountResponse;
 import site.marrymo.restapi.user.entity.User;
 import site.marrymo.restapi.user.exception.UserErrorCode;
+import site.marrymo.restapi.user.repository.BlackListRepository;
 import site.marrymo.restapi.user.repository.UserRepository;
 import site.marrymo.restapi.wedding_img.entity.WeddingImg;
 import site.marrymo.restapi.wedding_img.repository.WeddingImgRepository;
@@ -44,7 +50,15 @@ class UserServiceTest {
     private CardRepository cardRepository;
 
     @Mock
+    private BlackListRepository blackListRepository;
+    @Mock
     private WeddingImgRepository weddingImgRepository;
+
+    @Mock
+    private HttpServletRequest httpServletRequest;
+
+    @Mock
+    private HttpServletResponse httpServletResponse;
 
     //stubbing을 이용한 테스트 코드
     @Test
@@ -426,26 +440,126 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("축의금 받을 계좌 등록 여부 확인")
-    void verifyAccountTest() {
+    @DisplayName("축의금 받을 계좌 등록 여부 확인 - 신랑")
+    void verifyAccountTest_OnlyGroom() {
+        // Given
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .who(Who.GROOM)
+                .groomAccount("123-456-789")
+                .brideAccount("")
+                .build();
+
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.of(user));
+
+        boolean expectedResult = true;
+
+        // When
+        VerifyAccountResponse response = userService.verifyAccount(UserDTO.builder().userSequence(1L).build());
+
+        // Then
+        assertEquals(expectedResult, response.getIsVerify());
+        verify(userRepository, times(1)).findByUserSequence(1L);
+
+    }
+
+    @Test
+    @DisplayName("축의금 받을 계좌 등록 여부 확인 - 신부")
+    void verifyAccountTest_OnlyBride() {
+        // Given
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .who(Who.BRIDE)
+                .brideAccount("123-456-789")
+                .build();
+
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.of(user));
+
+        boolean expectedResult = true;
+
+        // When
+        VerifyAccountResponse response = userService.verifyAccount(UserDTO.builder().userSequence(1L).build());
+
+        // Then
+        assertEquals(expectedResult, response.getIsVerify());
+        verify(userRepository, times(1)).findByUserSequence(1L);
+
+    }
+
+    @Test
+    @DisplayName("축의금 받을 계좌 등록 여부 확인 - 신랑")
+    void verifyAccountTest_BrideAndGroom() {
+        // Given
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .who(Who.BOTH)
+                .groomAccount("123-456-789")
+                .brideAccount("987-654-321")
+                .build();
+
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.of(user));
+
+        boolean expectedResult = true;
+
+        // When
+        VerifyAccountResponse response = userService.verifyAccount(UserDTO.builder().userSequence(1L).build());
+
+        // Then
+        assertEquals(expectedResult, response.getIsVerify());
+        verify(userRepository, times(1)).findByUserSequence(1L);
+
     }
 
     @Test
     @DisplayName("개인정보제공 동의 여부")
-    void patchAgreementTest(){
+    void patchAgreementTest() {
+        // Given
+        User user = User.builder()
+                .kakaoId("kimjaeyun")
+                .isAgreement(true)
+                .isRequired(true)
+                .build();
 
+        when(userRepository.findByUserSequence(1L)).thenReturn(Optional.of(user));
+
+        boolean expectedResult = true;
+
+        // When
+        User resultUser = userRepository.findByUserSequence(1L)
+                .orElseThrow(() -> new MarrymoException(UserErrorCode.USER_NOT_FOUND));
+
+        // Then
+        assertEquals(expectedResult, resultUser.isAgreement());
+        verify(userRepository, times(1)).findByUserSequence(1L);
     }
 
     @Test
-    @DisplayName("서비스 이용약관 동의 여부")
-    void getUserPermission(){
+    @DisplayName("로그아웃 - 쿠키 제거 및 refreshToken 블랙리스트 처리")
+    void logoutTest() {
+        // Given
+        Cookie accessTokenCookie = new Cookie("accessToken", "sampleAccessToken");
+        Cookie refreshTokenCookie = new Cookie("refreshToken", "sampleRefreshToken");
+        Cookie[] cookies = {accessTokenCookie, refreshTokenCookie};
 
-    }
+        when(httpServletRequest.getCookies()).thenReturn(cookies);
 
-    @Test
-    @DisplayName("로그아웃(쿠키 삭제)")
-    void logoutTest(){
+        // When
+        userService.logout(httpServletRequest, httpServletResponse);
 
+        // Then
+        for (Cookie cookie : cookies) {
+            verify(httpServletResponse).addCookie(argThat(result ->
+                    result.getName().equals(cookie.getName()) && result.getMaxAge() == 0));
+        }
+
+        verify(blackListRepository, times(1)).save(argThat(blackList ->
+                blackList.getInvalidRefreshToken().equals("sampleRefreshToken")));
     }
 
 }
